@@ -9,13 +9,20 @@
 import UIKit
 
 @UIApplicationMain
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate ,GIDSignInDelegate{
 
 	var window: UIWindow?
 
 
 	func application(application: UIApplication, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
 		// Override point for customization after application launch.
+		
+		var configureError: NSError?
+		GGLContext.sharedInstance().configureWithError(&configureError)
+		//assert(configureError == nil, "Error configuring Google services: \(configureError)")
+		
+		GIDSignIn.sharedInstance().delegate = self
+		
 		return true
 	}
 
@@ -40,7 +47,52 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 	func applicationWillTerminate(application: UIApplication) {
 		// Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 	}
+	
+	
+	func application(application: UIApplication,
+  openURL url: NSURL, sourceApplication: String?, annotation: AnyObject?) -> Bool {
+	return GIDSignIn.sharedInstance().handleURL(url,
+		sourceApplication: sourceApplication,
+		annotation: annotation)
+	}
 
+	func signIn(signIn: GIDSignIn!, didSignInForUser user: GIDGoogleUser!,
+  withError error: NSError!) {
+	if (error == nil) {
+		// Perform any operations on signed in user here.
+		let userId = user.userID                  // For client-side use only!
+		let idToken = user.authentication.idToken // Safe to send to the server
+		let name = user.profile.name
+		let email = user.profile.email
+		
+		var defaults :NSUserDefaults = NSUserDefaults.standardUserDefaults()
+		defaults.setObject(name, forKey: "name")
+		defaults.setObject(email, forKey: "email")
+		defaults.synchronize()
+		
+		
+		// ...
+		println("\(name) successfully loged in");
+		//NSNotificationCenter.defaultCenter().postNotificationName("GoogleSignIn", object: nil)
+		
+		let myStoryBoard:UIStoryboard = UIStoryboard(name:"Main", bundle:nil)
+		
+		let loggedInPage = myStoryBoard.instantiateViewControllerWithIdentifier("signOutViewController") as! SignOutViewController
+		
+		let loggedInPageNav = UINavigationController(rootViewController: loggedInPage)
+		
+		self.window?.rootViewController = loggedInPageNav
+		
+	} else {
+		println("\(error.localizedDescription)")
+	}
+	}
 
+	
+	func signIn(signIn: GIDSignIn!, didDisconnectWithUser user:GIDGoogleUser!,
+  withError error: NSError!) {
+	// Perform any operations when the user disconnects from app here.
+	// ...
+	}
 }
 
